@@ -241,7 +241,7 @@ build works offline; `npx playwright install chromium` is needed once for the br
 
 | Target | How |
 |---|---|
-| **Vercel** | Import the repo. [vercel.json](vercel.json) already sets `outputDirectory: "web"`, no build step, immutable caching for `/vendor` and `/models`. |
+| **Vercel** | Import the repo and deploy — no settings to change. [vercel.json](vercel.json) rewrites the root paths into `web/` (no build step), and pins immutable caching for `/vendor` and `/models`. |
 | **GitHub Pages** | Serve the `web/` folder (any static host works; there is no server-side code in the game). |
 | **Online leaderboard** | `npm run server` — a small Node + `ws` relay in `server/` with validation and rate limits. |
 

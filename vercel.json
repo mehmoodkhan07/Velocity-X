@@ -3,7 +3,13 @@
   "framework": null,
   "buildCommand": null,
   "installCommand": null,
-  "outputDirectory": "web",
+  "rewrites": [
+    { "source": "/", "destination": "/web/index.html" },
+    { "source": "/index.html", "destination": "/web/index.html" },
+    { "source": "/manifest.webmanifest", "destination": "/web/manifest.webmanifest" },
+    { "source": "/sw.js", "destination": "/web/sw.js" },
+    { "source": "/((?!web/).*)", "destination": "/web/$1" }
+  ],
   "headers": [
     {
       "source": "/vendor/(.*)",
@@ -15,7 +21,10 @@
     },
     {
       "source": "/sw.js",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
     }
   ]
 }
