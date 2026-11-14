@@ -5,11 +5,23 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
-import { stripTypeScriptTypes } from 'node:module';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SRC = ['src/index.ts', 'src/daily.ts', 'src/gameplay.ts', 'src/input.ts'];
 const out = path.join(here, '..', '..', 'web', 'vendor', 'game-core.js');
+
+// stripTypeScriptTypes landed in node 22.13 / 23.2. On an older host (or a checkout that only needs to
+// ship the committed bundle) keep web/vendor/game-core.js instead of failing the build.
+let stripTypeScriptTypes = null;
+try { ({ stripTypeScriptTypes } = await import('node:module')); } catch { stripTypeScriptTypes = null; }
+if (typeof stripTypeScriptTypes !== 'function') {
+  if (fs.existsSync(out)) {
+    console.log('game-core: node ' + process.versions.node + ' cannot strip types — keeping the committed web/vendor/game-core.js');
+    process.exit(0);
+  }
+  console.error('game-core/build: needs Node >= 22.13 to strip TypeScript types, and web/vendor/game-core.js is missing');
+  process.exit(1);
+}
 
 const names = new Set();
 // `export const A = 1, B = 2;` exports every declarator, so collect the identifier of each one.

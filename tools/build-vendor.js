@@ -7,7 +7,14 @@ const root = path.join(__dirname, '..');
 const threePkg = path.join(root, 'desktop', 'node_modules', 'three');
 const out = path.join(root, 'web', 'vendor');
 if (!fs.existsSync(threePkg)) {
-  console.error('three.js not found in desktop/node_modules — run: cd desktop && npm install');
+  // The generated copies are committed, so a checkout that never ran `npm install` inside desktop/
+  // (CI, Vercel, a fresh clone) still ships a working game. Only regenerate when three.js is present.
+  const done = ['three.min.js', 'GLTFLoader.js'].every(f => fs.existsSync(path.join(out, f)));
+  if (done) {
+    console.log('web/vendor already generated — skipping (run `cd desktop && npm install` to rebuild it)');
+    process.exit(0);
+  }
+  console.error('three.js not found in desktop/node_modules and web/vendor is incomplete — run: cd desktop && npm install');
   process.exit(1);
 }
 fs.mkdirSync(out, { recursive: true });
