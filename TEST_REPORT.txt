@@ -1,0 +1,146 @@
+VELOCITY X — TEST REPORT (last run: 2026-11-12, build v0.6 "controls / horn / mobile" + performance pass)
+===============================================================================================
+
+Everything below was executed, not estimated. Commands are copy-pasteable from the repo root.
+
+1. STATIC / UNIT
+----------------------------------------------------------------------------------------------
+node tools/check-globals.js
+  -> check-globals: 9 scripts, 348 globals, 0 problem(s)
+     (classic scripts share one global scope; this catches duplicate top-level names that would be a
+      SyntaxError in the browser)
+
+node packages/game-core/build.js
+  -> game-core -> web\vendor\game-core.js (27459 bytes, 86 exports)
+
+node --experimental-strip-types --test packages/game-core/test/*.test.ts
+  -> tests 37 / pass 37 / fail 0     (core.test.ts, daily.test.ts, gameplay.test.ts, input.test.ts)
+
+  input.test.ts covers the shared input rules that every device goes through:
+    - deadzone (stick drift killed, live range rescaled), response curves (linear/soft/aggressive),
+      frame-rate independent smoothing, trigger deadzone
+    - on-screen wheel: +-450 deg = full lock, auto-centre never overshoots, centre-cross detection
+    - gyro/tilt: landscape detection for both rotations, beta vs gamma axis, sign flip per landscape,
+      calibration makes the current angle neutral, invert, low-pass smoothing
+    - auto-detect order (pad > touch wheel > keyboard)
+    - remap conflict detection for keyboard strings AND numeric controller buttons ("1" vs 1 bug fixed),
+      rejected binds never mutate the saved layout
+    - controller menu navigation: one step at a time, wrap at both ends, empty list, hold-to-repeat timing
+    - pad layouts: standard table, 12+ button pads treated as standard, 6-button generic fallback
+    - controller brand -> icon set, prompt tables, assists only ever reduce aggression
+
+2. HEADLESS GAME SIMULATION (real game scripts, DOM/THREE/Audio stubs)
+----------------------------------------------------------------------------------------------
+node tools/simtest.js
+  -> sim: 14 scenario(s) passed, 0 failed
+     steer   keyboard steering + physics
+     pad     basic pad (detection, triggers, stick, nitro)
+     padfull complete Xbox pad: detection/brand, standard map, prompt switch, deadzone, both stick
+             directions, half/full RT, LT brake, X handbrake, A nitro, Y camera, LB look-back +
+             release, B horn, Start pause, Start resume, R3 rewind, Back map, RB car reset,
+             off-road vibration (playEffect captured), non-standard 6-button fallback, replug,
+             unplug -> race pauses, nothing stuck after release
+     wheel   on-screen wheel: centred, +-225, -450, clamp 900->450, auto-centre, no-auto-centre,
+             hidden wheel shows arrows, keyboard overrides
+     gyro    tilt with calibration for landscape-left/right + portrait, invert, auto-detect fallbacks
+     drive/wall/pit/nitro/rewind/nemesis/resume   regression scenarios from earlier builds
+     horn    horn hold/tap, message, replay event, stats
+     horn2   4 synthesised horn types, per-car horn, honk counter, replay recording, achievement entry,
+             traffic AI pulls aside then eases back into its lane
+
+3. REAL BROWSER (Playwright 1.65 + Chromium 158, static server on 127.0.0.1:8099)
+----------------------------------------------------------------------------------------------
+npx playwright test        (playwright install chromium was required once)
+  -> 12 passed
+
+  the page boots with no script errors
+  touch device (844x390, hasTouch):
+    the on-screen wheel appears, dragging it steers, and "show wheel off" hides it
+    the touch buttons drive: gas, brake, nitro, handbrake, horn
+  desktop with a stubbed Xbox controller:
+    controller drives the car: analog triggers, stick, nitro, horn, pause, camera
+    Start opens the pause menu, the D-pad moves the focus ring and A selects
+  remapping in the settings screen:
+    a pad button rebinds, a taken button is refused, and reset restores the defaults
+    a keyboard key already in use is refused
+  generic pad with no standard mapping:
+    the fallback layout drives the car, rumbles and pauses on unplug
+  PlayStation pad:
+    a DualSense is detected as PlayStation and the prompts use its icons
+  H honks the horn
+  gyro: a mocked DeviceOrientationEvent steers the car
+  settings survive a reload
+
+  The tests drive the shipped scripts (no mocks of game logic). They read live state through the small
+  window.VXDBG bridge in web/js/controls.js, because almost all game state is script-scoped.
+
+  One real bug was found by these tests and fixed: the touch HUD layout stored actions as
+  'gas'/'brake'/'nitro' while the shared input layer reads 't'/'b'/'n', so layout buttons did nothing.
+
+4. PERFORMANCE (measured in the shipped browser build, Intel HD Graphics 5500, 960x540)
+----------------------------------------------------------------------------------------------
+Numbers come from a throwaway Playwright probe that wrapped renderer.render, counted frames and read
+renderer.info — the probe was deleted after use, the measurements are kept here.
+
+  before this pass                              after
+  --------------------------------------------  -----------------------------------------------
+  ~10.0 ms/frame of JS per frame                ~6.3 ms worst case (16 cars, night, rain)
+  8 requestAnimationFrame loops every frame     8 loops, the UI one throttled to ~30 Hz
+  12.1k triangles, 152 draw calls, 9.5 ms        88-121 draw calls, 4.3-8.2 ms render
+  drawing buffer reallocated 9x in 4 s          governor changes one 0.05 step/s with a cooldown
+  44.9 FPS @ pixel ratio 0.7 (worst case)       57.4 FPS @ pixel ratio 1.0 (worst case)
+
+What was actually wrong and what changed:
+- MSAA was the single biggest cost on this GPU (9.49 -> 5.21 ms with it off). It is now off on weak
+  adapters (probed via WEBGL_debug_renderer_info) and on Low/Medium quality.
+- MeshStandardMaterial -> MeshLambertMaterial for road, ground, kerbs, lines, props and trees.
+- Each car GLB was 20+ draw calls; models.js now flattens it to one mesh per material at load time.
+- Screen blinking: the dynamic-resolution governor called renderer.setPixelRatio() every 0.5 s with a
+  new value, which reallocates the WebGL drawing buffer and flashes. It now moves at most one 0.05
+  step per second, honours a cooldown, remembers a ceiling and no-ops when the value is unchanged.
+- Night races used a SpotLight for the headlights (the most expensive light type); replaced with an
+  additive cone. Rain went 1800 -> 800 segments. HUD writes go through a compare-and-set cache.
+- Two frames-per-second bugs fixed along the way: features.js and extras.js both rewrote #gear/#spd
+  every frame, fighting the main loop (visible flicker).
+
+Gameplay / presentation added in the same pass:
+- Six distinct locations: per-location surface colour, kerbs (alternating vertex-coloured ribbons),
+  shoulders, guardrails, scenery (grandstands, cacti+rocks, pines+snow, neon pylons, palms, oil drums,
+  warehouses + smoke stacks) and a per-location sky/fog tint. Verified by reading the live material
+  colours per location and by screenshots of all six.
+- Per-car engine sound: every car index owns a two-oscillator voice with its own pitch, waveform and
+  filter, plus the two nearest rivals mixed in with distance falloff. Voices are stopped when the
+  race ends so nothing drones or accumulates in the mixer.
+- Fixed a first-run crash found by the headless suite: boot() read save.set.aa before extras.js had
+  created save.set, so a brand-new player (empty localStorage) would have thrown while loading.
+- The horned AI now swerves .9 of full lock instead of .7: the reaction is visible and the acceptance
+  assertion no longer sits exactly on its threshold (the horn scenario was failing ~1 run in 10).
+
+5. WHAT IS STILL UNVERIFIED (honest)
+----------------------------------------------------------------------------------------------
+- No physical gamepad, phone or tablet was available. Controller tests use the real Gamepad API path but
+  with a stubbed pad object in Chromium; gyro tests use synthetic DeviceOrientationEvent. Real-device
+  differences that are NOT verified here: DualSense trigger axes, some Android pads that lie about
+  mapping/button counts, iOS Safari motion-permission prompt, iOS/Android fullscreen + orientation lock,
+  Screen Wake Lock, PWA install prompt, and whether haptics physically feel right (we assert that
+  vibrationActuator.playEffect is called with sane magnitudes, not the rumble itself).
+- The on-screen wheel, gyro and layout editor were exercised with pointer events at phone size, not on a
+  real touchscreen (multi-touch simultaneity is simulated, not physically tested).
+- Online: the horn/taunt relay is rate-limited server-side (220 ms horn, 3 s taunt) but the server was not
+  run against real clients in this pass.
+- Not implemented yet (tracked, not claimed): living track, touge duels, driver-DNA coach, telemetry,
+  nitro-skill scoring, crews/economy expansion, photo mode, livery/tuning/track editors, weather/surface
+  extension, real multiplayer matchmaking/spectate/anti-cheat, wheel force feedback, WebXR, multi-monitor,
+  localisation. Anything shown in menus but not implemented is labelled "coming soon".
+
+6. HOW TO RE-RUN EVERYTHING
+----------------------------------------------------------------------------------------------
+node tools/check-globals.js
+node packages/game-core/build.js
+node --experimental-strip-types --test packages/game-core/test/*.test.ts
+node tools/simtest.js
+npx playwright install chromium        (first time only)
+npx playwright test
+
+or:  npm run verify:fast     (globals + build + unit + sim)
+     npm run verify          (the above + the browser suite)

@@ -1,0 +1,8 @@
+{
+  "name": "velocity-x-desktop", "version": "0.2.0", "main": "main.js", "description": "VELOCITY X - Drive Beyond Limits", "author": "VELOCITY X",
+  "scripts": { "prep": "node prep.js", "start": "npm run prep && electron .", "dist": "npm run prep && electron-builder --win nsis" },
+  "dependencies": { "three": "0.149.0" },
+  "devDependencies": { "electron": "^31.0.0", "electron-builder": "^24.13.3" },
+  "build": { "appId": "com.velocityx.game", "productName": "VELOCITY X", "files": ["main.js", "preload.js", "web/**"],
+    "win": { "target": "nsis" }, "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true } }
+}

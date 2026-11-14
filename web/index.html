@@ -1,0 +1,35 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#080A0F"><meta name="color-scheme" content="dark"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><title>VELOCITY X</title><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="img/icon-1024.png"><link rel="apple-touch-icon" href="img/icon-1024.png"><link rel="stylesheet" href="css/style.css?v=13"></head><body>
+<canvas id="gl"></canvas>
+<div id="splash" class="screen"><div class="logo">VELOCITY <b>X</b></div><div class="tag">DRIVE BEYOND LIMITS.</div><div id="bar"><i id="barf"></i></div><button id="start" disabled>LOADING…</button><a id="skip">Skip intro</a></div>
+<div id="menu" class="screen hidden"><div class="top"><span>VELOCITY <b>X</b></span><span id="prof"></span></div>
+<div class="panel"><h2>CUSTOM RACE</h2><h3>1 · VEHICLE</h3><div id="cars"></div>
+<div class="grid">
+<label>Location<select id="loc"><option value="0">Professional Circuit</option><option value="1">Desert Frontier</option><option value="2">Alpine Pass</option></select></label>
+<label>Total cars (incl. you)<select id="num"><option>2</option><option>4</option><option selected>6</option><option>8</option><option>10</option><option>12</option><option>16</option></select></label>
+<label>AI difficulty<select id="diff"><option value="0">Beginner</option><option value="1">Easy</option><option value="2" selected>Normal</option><option value="3">Hard</option><option value="4">Expert</option><option value="5">Professional</option></select></label>
+<label>Laps<select id="laps"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>8</option><option>10</option></select></label>
+<label>Weather<select id="wx"><option value="clear">Clear</option><option value="rain">Rain</option><option value="fog">Fog</option></select></label>
+<label>Time<select id="tod"><option value="day">Afternoon</option><option value="sunset">Sunset</option><option value="night">Night</option></select></label>
+<label>Nitro<select id="nit"><option value="1">ON</option><option value="0">OFF</option></select></label>
+<label>Collisions<select id="col"><option value="1">ON</option><option value="0">OFF</option></select></label></div>
+<div id="sum"></div><button id="go">START RACE</button> <button id="reset" class="ghost">Reset save</button></div></div>
+<div id="hud" class="hidden"><div id="hl"><div id="pos"></div><div id="lap"></div><div id="tim"></div><div id="cp"></div><div id="lapd"></div></div>
+<div id="hb"><div id="spd">0</div><small>KM/H · GEAR <span id="gear">1</span> · RPM <span id="rpm">0</span></small><div class="nb"><i id="nf"></i></div></div><div id="msg"></div><div id="cd"></div>
+<div id="fps"></div><div id="vxdbg"></div><button id="pb" title="Pause (ESC / P)">❚❚</button>
+<div id="vxauto"><b>AUTO DRIVE</b><span id="vxautoinfo"></span><button id="vxtake" title="Take control (T)">TAKE CONTROL</button></div>
+<div id="vxpan">
+<div class="vxr"><span>TYRE</span><div class="vxb"><i id="vxTyre"></i></div><b id="vxTyreV">0</b></div>
+<div class="vxr"><span>FUEL</span><div class="vxb"><i id="vxFuel"></i></div><b id="vxFuelV">0</b></div>
+<div class="vxr"><span>DMG</span><div class="vxb dm"><i id="vxDmg"></i></div><b id="vxDmgV">0</b></div>
+<div class="vxr"><span>HEAT</span><div class="vxb ht"><i id="vxHeat"></i></div><b id="vxHeatV">0</b></div></div>
+<div id="vxdraft"></div><div id="vxsub"><b></b><span></span></div>
+<div id="help">W/S gas·brake · A/D steer · SPACE handbrake · SHIFT nitro · C camera · R reset · B look back · H horn · Z rewind · F pit · M map · T auto/self · ESC pause</div></div>
+<div id="pause" class="screen hidden"><div class="panel"><h2>PAUSED</h2><div id="pinfo"></div>
+<div id="pdrive" class="hidden"><h3>DRIVE MODE</h3><div class="seg"><button id="pdeself" class="ghost">SELF DRIVE</button><button id="pdeauto" class="ghost">AUTO DRIVE</button></div><div id="pdeopts"></div></div>
+<button id="resume">RESUME</button> <button id="prestart" class="ghost">RESTART</button><button id="pset" class="ghost">SETTINGS</button> <button id="quit" class="ghost">QUIT TO MENU</button><div id="phelp">ESC or P resumes</div></div></div>
+<div id="res" class="screen hidden"><div class="panel"><h2>RACE RESULTS</h2><div id="rt"></div><button id="retry">RETRY</button> <button id="tomenu" class="ghost">MAIN MENU</button></div></div>
+<div id="vxdrive" class="screen hidden"><div class="panel"><h2>OPEN WORLD</h2><div class="sub">How do you want to drive?</div>
+<div class="picks"><button id="vxself"><b>SELF DRIVE</b><span>You control the car</span></button><button id="vxauto2"><b>AUTO DRIVE</b><span>The computer drives, you relax</span></button></div>
+<div id="vxdriveopts"></div><button class="ghost" id="vxdriveback">BACK</button></div></div>
+<div id="vxrot" class="hidden"><div>ROTATE YOUR PHONE</div><small>Full-screen driving needs landscape</small></div>
+<script src="vendor/three.min.js?v=13" onerror="this.remove()"></script><script>window.THREE||document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"><\/script>')</script><script src="js/game.js?v=13"></script><script src="js/extras.js?v=13"></script><script src="js/extras2.js?v=13"></script><script src="vendor/GLTFLoader.js?v=13" onerror="this.remove()"></script><script src="vendor/game-core.js?v=13"></script><script src="js/models.js?v=13"></script><script src="js/features.js?v=13"></script><script src="js/input.js?v=13"></script><script src="js/gameplay.js?v=13"></script><script src="js/horn.js?v=13"></script><script src="js/audio.js?v=13"></script><script src="js/controls.js?v=13"></script><script src="js/autodrive.js?v=13"></script></body></html>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="VELOCITY X">
+  <rect width="512" height="512" rx="96" fill="#080A0F"/>
+  <path d="M96 150 L156 150 L214 300 L272 150 L332 150 L242 372 L186 372 Z" fill="#00E5FF"/>
+  <path d="M296 150 L356 150 L416 372 L356 372 Z" fill="#FF6A00" opacity="0.92"/>
+  <path d="M296 372 L356 372 L416 150 L356 150 Z" fill="#00E5FF" opacity="0.55"/>
+  <rect x="96" y="404" width="320" height="14" rx="7" fill="#00E5FF" opacity="0.35"/>
+</svg>

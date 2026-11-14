@@ -1,0 +1,3 @@
+{ "name": "@velocity-x/game-core", "version": "0.2.0", "type": "module", "scripts": {
+  "test": "node --experimental-strip-types --test test/*.test.ts",
+  "build": "node build.js" } }

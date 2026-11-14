@@ -1,0 +1,32 @@
+# dependencies
+node_modules/
+desktop/node_modules/
+server/node_modules/
+packages/*/node_modules/
+
+# test output
+test-results/
+playwright-report/
+blob-report/
+*.trace.zip
+
+# local logs from manual runs
+*.log
+
+# desktop build output
+dist/
+desktop/dist/
+desktop/out/
+
+# environment / secrets
+.env
+.env.*
+!.env.example
+
+# local tooling (portable git, downloads)
+.tools/
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
