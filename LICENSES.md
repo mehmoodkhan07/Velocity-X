@@ -25,21 +25,24 @@ record their licence here (source, author, licence name, link). If a model canno
 falls back to its own procedural car meshes (`web/js/models.js`), so the game does not depend on them for
 the physics or the HUD.
 
-## Images (`web/img/`)
+## Images
 
 | File | Origin | Licence |
 | --- | --- | --- |
-| `splash.png` | supplied with the project; provenance not documented | unknown — verify before shipping |
-| `weather-reference.png` | supplied with the project; used as an internal art reference | unknown — verify before shipping |
-| `icon-1024.png`, `icon.svg` | generated for VELOCITY X (original artwork: the "VX" mark on a dark tile) | project licence |
+| `web/img/splash.png` | supplied with the project; provenance not documented | unknown — verify before shipping |
+| `web/img/weather-reference.png` | supplied with the project; used as an internal art reference | unknown — verify before shipping |
+| `web/img/icon-1024.png`, `web/img/icon.svg` | generated for VELOCITY X (original artwork: the "VX" mark on a dark tile) | project licence |
 | `race-hud-screenshot.png` (repo root) | screenshot of this game | project licence |
+| `assets/screens/01-menu.png` | screenshot of this game (headless Chromium) | project licence |
+| `assets/banner.svg`, `assets/demo.svg`, `assets/architecture.svg` | drawn for this README (hand-written SVG with CSS animation) | project licence |
 
 ## Audio
 
 There are no audio files in this project. Every sound — engine, tyres, collisions, nitros, rain, wind,
 music loop, countdown beeps, victory/defeat jingles and all four horn voices (standard, sport, air horn,
-melody) — is synthesised at runtime with the Web Audio API in `web/js/game.js`, `web/js/extras.js` and
-`web/js/horn.js`. Nothing is sampled, so nothing needs an external music or SFX licence.
+melody) — is synthesised at runtime with the Web Audio API in `web/js/game.js`, `web/js/extras.js`,
+`web/js/audio.js` and `web/js/horn.js`. Nothing is sampled, so nothing needs an external music or SFX
+licence.
 
 ## Fonts
 

@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 230" width="900" height="230" role="img" aria-label="Architecture: one input record feeds shared rules, then physics, then render">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#05080f"/><stop offset="1" stop-color="#0a1420"/>
+    </linearGradient>
+    <linearGradient id="flow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#00E5FF" stop-opacity=".1"/>
+      <stop offset=".5" stop-color="#00E5FF" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#00E5FF" stop-opacity=".1"/>
+    </linearGradient>
+    <style>
+      .pulse { animation: travel 3.4s linear infinite; }
+      .l1 { animation-delay: 0s } .l2 { animation-delay: -1.13s } .l3 { animation-delay: -2.26s }
+      .box { animation: soft 3.4s ease-in-out infinite; }
+      .b2 { animation-delay: .85s } .b3 { animation-delay: 1.7s } .b4 { animation-delay: 2.55s }
+      @keyframes travel { from { transform: translateX(0) } to { transform: translateX(212px) } }
+      @keyframes soft { 0%,100% { opacity: .9 } 50% { opacity: 1 } }
+      @media (prefers-reduced-motion: reduce) { .pulse, .box { animation: none } }
+    </style>
+  </defs>
+
+  <rect width="900" height="230" fill="url(#bg2)"/>
+
+  <g font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+    <!-- boxes -->
+    <g class="box">
+      <rect x="16" y="66" width="176" height="96" rx="12" fill="#0a1522" stroke="#1d5f7a"/>
+      <text x="32" y="94" font-size="12" letter-spacing="2.5" fill="#5f8fa6">DEVICES</text>
+      <text x="32" y="118" font-size="13" fill="#cfefff">keyboard · gamepad</text>
+      <text x="32" y="138" font-size="13" fill="#cfefff">touch · wheel · gyro</text>
+      <text x="32" y="156" font-size="11" fill="#7ea8bd">→ one InputState</text>
+    </g>
+
+    <g class="box b2">
+      <rect x="244" y="66" width="176" height="96" rx="12" fill="#0a1522" stroke="#1d5f7a"/>
+      <text x="260" y="94" font-size="12" letter-spacing="2.5" fill="#5f8fa6">GAME-CORE</text>
+      <text x="260" y="118" font-size="13" fill="#cfefff">assists · curves</text>
+      <text x="260" y="138" font-size="13" fill="#cfefff">ranking · rewards</text>
+      <text x="260" y="156" font-size="11" fill="#7ea8bd">TypeScript · 37 tests</text>
+    </g>
+
+    <g class="box b3">
+      <rect x="472" y="66" width="176" height="96" rx="12" fill="#0a1522" stroke="#1d5f7a"/>
+      <text x="488" y="94" font-size="12" letter-spacing="2.5" fill="#5f8fa6">PHYSICS</text>
+      <text x="488" y="118" font-size="13" fill="#cfefff">fixed 1/60 step</text>
+      <text x="488" y="138" font-size="13" fill="#cfefff">interpolated render</text>
+      <text x="488" y="156" font-size="11" fill="#7ea8bd">bounded catch-up</text>
+    </g>
+
+    <g class="box b4">
+      <rect x="700" y="66" width="184" height="96" rx="12" fill="#0a1522" stroke="#00E5FF"/>
+      <text x="716" y="94" font-size="12" letter-spacing="2.5" fill="#5f8fa6">PRESENT</text>
+      <text x="716" y="118" font-size="13" fill="#cfefff">three.js + HUD</text>
+      <text x="716" y="138" font-size="13" fill="#cfefff">Web Audio graph</text>
+      <text x="716" y="156" font-size="11" fill="#7ea8bd">no per-frame allocs</text>
+    </g>
+
+    <!-- arrows -->
+    <g stroke="url(#flow)" stroke-width="2">
+      <line x1="196" y1="114" x2="240" y2="114"/>
+      <line x1="424" y1="114" x2="468" y2="114"/>
+      <line x1="652" y1="114" x2="696" y2="114"/>
+    </g>
+    <g fill="none" stroke="#1d5f7a" stroke-width="2">
+      <path d="M236 108 l6 6 -6 6"/><path d="M464 108 l6 6 -6 6"/><path d="M692 108 l6 6 -6 6"/>
+    </g>
+
+    <!-- moving pulses -->
+    <circle class="pulse l1" cx="200" cy="114" r="3.5" fill="#00E5FF"/>
+    <circle class="pulse l2" cx="428" cy="114" r="3.5" fill="#00E5FF"/>
+    <circle class="pulse l3" cx="656" cy="114" r="3.5" fill="#00E5FF"/>
+
+    <!-- bottom note -->
+    <rect x="16" y="182" width="868" height="30" rx="8" fill="#08111c" stroke="#12293a"/>
+    <text x="32" y="202" font-size="12" fill="#7ea8bd">Same scripts in the browser and in the Electron build · <tspan fill="#9defff">window.VXDBG</tspan> is the only test hook, and it is read-only for the game.</text>
+
+    <text x="16" y="40" font-size="13" letter-spacing="3" fill="#5f8fa6">ONE ENGINE, FOUR SKINS</text>
+  </g>
+</svg>

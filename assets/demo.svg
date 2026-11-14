@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" width="900" height="300" role="img" aria-label="Animated gameplay sketch: the road, the car and the HUD in motion">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#05080f"/><stop offset=".6" stop-color="#0a1a2b"/><stop offset="1" stop-color="#05080f"/>
+    </linearGradient>
+    <linearGradient id="tarmac" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#101b27"/><stop offset="1" stop-color="#070c13"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#19f0ff"/><stop offset="1" stop-color="#0a7d94"/>
+    </linearGradient>
+    <linearGradient id="glowline" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#00E5FF" stop-opacity="0"/><stop offset=".5" stop-color="#00E5FF"/><stop offset="1" stop-color="#00E5FF" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="roadclip">
+      <polygon points="330,300 570,300 505,110 395,110"/>
+    </clipPath>
+    <style>
+      .dash { animation: rush 1.6s linear infinite; }
+      .d1 { animation-delay: 0s } .d2 { animation-delay: -.4s } .d3 { animation-delay: -.8s }
+      .d4 { animation-delay: -1.2s } .d5 { animation-delay: -.2s } .d6 { animation-delay: -.6s }
+      .d7 { animation-delay: -1s } .d8 { animation-delay: -1.4s }
+      .side { animation: rush 1.1s linear infinite; }
+      .p1 { animation-delay: 0s } .p2 { animation-delay: -.35s } .p3 { animation-delay: -.7s } .p4 { animation-delay: -1s }
+      .car { animation: bob 1.1s ease-in-out infinite; }
+      .rpm { animation: rev 2.4s ease-in-out infinite; transform-origin: 0 0; }
+      .sweep { animation: slide 3s ease-in-out infinite; }
+      @keyframes rush { from { transform: translateY(-190px) } to { transform: translateY(190px) } }
+      @keyframes bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-2.5px) } }
+      @keyframes rev { 0%,100% { transform: rotate(-58deg) } 45% { transform: rotate(42deg) } 60% { transform: rotate(18deg) } }
+      @keyframes slide { 0%,100% { opacity: .25 } 50% { opacity: .8 } }
+      @media (prefers-reduced-motion: reduce) { .dash, .side, .car, .rpm, .sweep { animation: none } }
+    </style>
+  </defs>
+
+  <rect width="900" height="300" fill="url(#sky)"/>
+
+  <!-- city silhouette -->
+  <g fill="#0d1c2a" opacity=".9">
+    <rect x="40" y="150" width="46" height="60"/><rect x="96" y="132" width="30" height="78"/>
+    <rect x="136" y="160" width="54" height="50"/><rect x="640" y="146" width="50" height="64"/>
+    <rect x="700" y="128" width="34" height="82"/><rect x="744" y="158" width="60" height="52"/>
+  </g>
+  <g fill="#00E5FF" opacity=".18">
+    <rect x="50" y="164" width="6" height="6"/><rect x="64" y="180" width="6" height="6"/>
+    <rect x="104" y="146" width="6" height="6"/><rect x="150" y="176" width="6" height="6"/>
+    <rect x="650" y="160" width="6" height="6"/><rect x="712" y="142" width="6" height="6"/>
+  </g>
+
+  <ellipse cx="450" cy="112" rx="300" ry="26" fill="#00E5FF" opacity=".12"/>
+
+  <!-- road -->
+  <polygon points="330,300 570,300 505,110 395,110" fill="url(#tarmac)"/>
+  <g stroke="#1d3a4d" stroke-width="2" fill="none">
+    <polygon points="330,300 570,300 505,110 395,110"/>
+  </g>
+  <rect x="330" y="108" width="240" height="3" fill="url(#glowline)"/>
+
+  <!-- centre dashes -->
+  <g clip-path="url(#roadclip)" fill="#7ff3ff" opacity=".85">
+    <rect class="dash d1" x="447" y="90" width="6" height="34" rx="2"/>
+    <rect class="dash d2" x="447" y="90" width="6" height="34" rx="2"/>
+    <rect class="dash d3" x="447" y="90" width="6" height="34" rx="2"/>
+    <rect class="dash d4" x="447" y="90" width="6" height="34" rx="2"/>
+    <rect class="dash d5" x="447" y="90" width="6" height="34" rx="2"/>
+    <rect class="dash d6" x="447" y="90" width="6" height="34" rx="2"/>
+    <rect class="dash d7" x="447" y="90" width="6" height="34" rx="2"/>
+    <rect class="dash d8" x="447" y="90" width="6" height="34" rx="2"/>
+  </g>
+
+  <!-- kerb stripes -->
+  <g clip-path="url(#roadclip)">
+    <g fill="#00E5FF" opacity=".5">
+      <rect class="side p1" x="331" y="90" width="9" height="18"/>
+      <rect class="side p2" x="331" y="90" width="9" height="18"/>
+      <rect class="side p3" x="331" y="90" width="9" height="18"/>
+      <rect class="side p4" x="331" y="90" width="9" height="18"/>
+      <rect class="side p1" x="560" y="90" width="9" height="18"/>
+      <rect class="side p2" x="560" y="90" width="9" height="18"/>
+      <rect class="side p3" x="560" y="90" width="9" height="18"/>
+      <rect class="side p4" x="560" y="90" width="9" height="18"/>
+    </g>
+  </g>
+
+  <!-- car (rear view, chasing camera) -->
+  <g class="car" transform="translate(450 232)">
+    <ellipse cx="0" cy="30" rx="62" ry="10" fill="#00E5FF" opacity=".16"/>
+    <path d="M-52 24 l8 -30 q2 -8 12 -9 l64 0 q10 1 12 9 l8 30 z" fill="url(#body)"/>
+    <path d="M-34 -6 l6 -18 q1 -5 7 -5 l42 0 q6 0 7 5 l6 18 z" fill="#061018" opacity=".85"/>
+    <rect x="-42" y="6" width="16" height="6" rx="3" fill="#ff3b3b"/>
+    <rect x="26" y="6" width="16" height="6" rx="3" fill="#ff3b3b"/>
+    <rect x="-6" y="14" width="12" height="5" rx="2" fill="#eaffff" opacity=".9"/>
+    <rect x="-58" y="16" width="10" height="14" rx="3" fill="#05090e"/>
+    <rect x="48" y="16" width="10" height="14" rx="3" fill="#05090e"/>
+  </g>
+
+  <!-- speed streaks -->
+  <g stroke="#8ff6ff" stroke-width="2" stroke-linecap="round" opacity=".55">
+    <line class="sweep" x1="150" y1="200" x2="270" y2="200"/>
+    <line class="sweep" x1="120" y1="232" x2="250" y2="232"/>
+    <line class="sweep" x1="640" y1="206" x2="770" y2="206"/>
+    <line class="sweep" x1="660" y1="240" x2="800" y2="240"/>
+  </g>
+
+  <!-- speedometer -->
+  <g transform="translate(812 214)">
+    <circle r="52" fill="#060c14" stroke="#123243" stroke-width="2"/>
+    <path d="M-40 22 A46 46 0 1 1 40 22" fill="none" stroke="#123243" stroke-width="7" stroke-linecap="round"/>
+    <path d="M-40 22 A46 46 0 1 1 40 22" fill="none" stroke="#00E5FF" stroke-width="7" stroke-linecap="round" stroke-dasharray="150 400"/>
+    <g class="rpm"><line x1="0" y1="4" x2="0" y2="-34" stroke="#FF6A00" stroke-width="3.5" stroke-linecap="round"/></g>
+    <circle r="4" fill="#0affc3"/>
+    <text y="40" text-anchor="middle" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="15" font-weight="700" fill="#9defff">287</text>
+  </g>
+
+  <text x="36" y="42" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="13" letter-spacing="4" fill="#5f8fa6">LAP 1 / 3</text>
+  <text x="36" y="66" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="1" fill="#d9fbff">01:24.318</text>
+</svg>
