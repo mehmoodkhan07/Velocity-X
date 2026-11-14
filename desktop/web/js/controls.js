@@ -15,22 +15,25 @@ save.layout = save.layout || null;          // per-profile touch layout
 save.set.keys = Object.assign({}, save.set.keys);   // ensure a stable object for remapping
 
 // Positions are percentages of the viewport so the same layout works at 320px and on a tablet.
-// The utilities sit in a column on the left edge (thumb reach without covering the road), the pedals in
-// the bottom-right corner and the speedometer owns the bottom centre: nothing overlaps at any size.
+// v0.8: four buttons only, all under the right thumb (the left thumb owns the wheel, or nothing in tilt
+// mode): GAS biggest and lowest, BRAKE beside it, NOS above GAS, HORN above BRAKE.  The speedometer
+// owns the bottom centre in landscape; in portrait it is a chip in the top-right column.
+const VX_LAYOUT_V = 2;
 const VX_LAYOUT_DEF = {
-  gas: { x: 88, y: 71, s: 98, o: .52, t: 'GAS' },
-  brake: { x: 71, y: 82, s: 84, o: .5, t: 'BRK' },
-  nitro: { x: 88, y: 47, s: 64, o: .46, t: 'NOS' },
-  hb: { x: 73, y: 60, s: 58, o: .42, t: 'HB' },
-  horn: { x: 9, y: 42, s: 62, o: .46, t: 'HORN' },
-  cam: { x: 9, y: 26, s: 52, o: .4, t: 'CAM' },
-  reset: { x: 9, y: 57, s: 52, o: .4, t: 'RST' },
-  left: { x: 13, y: 76, s: 84, o: .46, t: '◀' },
-  right: { x: 27, y: 76, s: 84, o: .46, t: '▶' }
+  gas: { x: 88, y: 71, s: 100, o: .55, t: 'GAS' },
+  brake: { x: 71, y: 82, s: 86, o: .52, t: 'BRAKE' },
+  nitro: { x: 88, y: 46, s: 68, o: .5, t: 'NOS' },
+  horn: { x: 73, y: 60, s: 60, o: .46, t: 'HORN' }
 };
+// a tall screen has room further down and less across: the same cluster, re-spaced
+const VX_LAYOUT_PORT = { gas: { x: 84, y: 84 }, brake: { x: 62, y: 90 }, nitro: { x: 86, y: 70 }, horn: { x: 64, y: 77 } };
 function vxLayout() {
+  // a layout saved before v0.8 still carries HB / CAM / RST / arrows at old spots: start clean
+  if (save.layout && save.layoutV !== VX_LAYOUT_V) save.layout = null;
+  save.layoutV = VX_LAYOUT_V;
   if (!save.layout) { save.layout = {}; for (const k in VX_LAYOUT_DEF) save.layout[k] = Object.assign({}, VX_LAYOUT_DEF[k]); }
   for (const k in VX_LAYOUT_DEF) if (!save.layout[k]) save.layout[k] = Object.assign({}, VX_LAYOUT_DEF[k]);
+  for (const k in save.layout) if (!VX_LAYOUT_DEF[k]) delete save.layout[k];
   return save.layout;
 }
 
@@ -60,54 +63,83 @@ const VXT = document.getElementById('vxtch');
 
 function vxBuildTouchPad() {
   if (!VXT) return;
+  vxTouchRelease();                       // the old nodes are about to vanish: nothing may stay held
   const L = vxLayout();
   // --s is the player's own size; the CSS layer multiplies it by --tb and floors the result at the 48px
   // tap minimum.  Sizing must not go through transform:scale() — that changed the box without a reflow
   // and left the previous raster on screen for a frame, i.e. two copies of every button.
   VXT.innerHTML = Object.keys(L).map(k =>
-    `<div class="vxbtn" data-act="${k}" style="left:${L[k].x}%;top:${L[k].y}%;--s:${L[k].s};opacity:${L[k].o}">${L[k].t}</div>`).join('');
+    `<div class="vxbtn" data-act="${k}" style="--s:${L[k].s};opacity:${L[k].o}">${VX_LAYOUT_DEF[k].t}</div>`).join('');
   VXT.querySelectorAll('.vxbtn').forEach(bindTouchBtn);
-  // the pad HTML was just replaced, so anything cached against the old nodes is stale
-  VXW.arrowEls = null; VXW.arrows = null;
-  // the short-landscape CSS has to move the three utility buttons out of the wheel's way; it may only do
-  // that while the player is still on the default layout, otherwise their own arrangement would be lost
+  // the default layout follows the screen (portrait / landscape) and the wheel side; a layout the player
+  // dragged into place is theirs and is used exactly as saved
   let def = true;
   for (const k in VX_LAYOUT_DEF) {
     const a = L[k], b = VX_LAYOUT_DEF[k];
     if (!a || a.x != b.x || a.y != b.y || a.s != b.s) { def = false; break; }
   }
   VXT.classList.toggle('vxdef', def);
+  VXT._def = def; VXT._shape = '';
+  vxPlacePad();
+}
+/** Moves the existing buttons (no rebuild, so a held pedal is never dropped by a rotation). */
+function vxPlacePad() {
+  if (!VXT) return;
+  const L = vxLayout();
+  const port = VXT._def && innerHeight > innerWidth;
+  const mir = VXT._def && save.set.wheelSide == 'right';
+  // tablet portrait keeps the speedo at the bottom centre: BRAKE steps right, clear of it
+  const wide = port && innerWidth >= 600;
+  const shape = (port ? 'p' : 'l') + (mir ? 'm' : '') + (wide ? 'w' : '');
+  if (VXT._shape === shape) return;
+  VXT._shape = shape;
+  const els = VXT.querySelectorAll('.vxbtn');
+  for (let i = 0; i < els.length; i++) {
+    const k = els[i].dataset.act, p = wide && k == 'brake' ? { x: 72, y: 91 } : port && VX_LAYOUT_PORT[k] ? VX_LAYOUT_PORT[k] : L[k];
+    els[i].style.left = (mir ? 100 - p.x : p.x) + '%';
+    els[i].style.top = p.y + '%';
+  }
+}
+addEventListener('resize', () => { if (VXT && VXT._def) vxPlacePad(); });
+/** Lets go of every touch control: used on rebuild, when the pad hides, on blur and when the app is backgrounded. */
+function vxTouchRelease() {
+  if (typeof VXTRL == 'undefined') return;
+  for (const k in VXT_ACT) VXTRL.touch[VXT_ACT[k]] = 0;
+  if (VXT) { const d = VXT.querySelectorAll('.vxbtn.down'); for (let i = 0; i < d.length; i++) d[i].classList.remove('down'); }
+  if (VXT && VXT._horn && typeof vxHornHold == 'function') vxHornHold(false);
+  if (VXT) VXT._horn = 0;
+  if (VXW.down) { VXW.down = false; VXW.id = null; if (VXW.canvas) VXW.canvas.classList.remove('grab'); if (typeof VXWHEEL != 'undefined') VXWHEEL.release(); }
 }
 // layout button -> shared input slot (the layout names are readable, the input state is short)
-const VXT_ACT = { gas: 't', brake: 'b', nitro: 'n', hb: 'hb', horn: 'h', left: 'l', right: 'r', cam: 'cam', reset: 'reset' };
+const VXT_ACT = { gas: 't', brake: 'b', nitro: 'n', horn: 'h' };
 function bindTouchBtn(el) {
   const act = el.dataset.act;
   const on = e => {
     e.preventDefault();
     if (save.set.layoutEdit) { vxDragStart(el, e); return; }
     if (el.setPointerCapture) try { el.setPointerCapture(e.pointerId); } catch (err) { }
-    if (act == 'cam') { if (typeof VXTRL != 'undefined') VXTRL.cycleCamera(); return; }
-    if (act == 'reset') { if (typeof VXTRL != 'undefined') VXTRL.resetCar(); return; }
-    if (act == 'horn') { if (typeof vxHornHold == 'function') vxHornHold(true); el.classList.add('down'); return; }
+    if (act == 'horn') { if (typeof vxHornHold == 'function') vxHornHold(true); VXT._horn = 1; el.classList.add('down'); return; }
     VXTRL.touch[VXT_ACT[act] || act] = 1; el.classList.add('down');
     if (typeof VXTRL != 'undefined') VXTRL.setLast('touch');
   };
   const off = () => {
-    if (act == 'horn') { if (typeof vxHornHold == 'function') vxHornHold(false); el.classList.remove('down'); return; }
-    if (act == 'cam' || act == 'reset') return;
+    if (!el.classList.contains('down')) return;
+    if (act == 'horn') { if (typeof vxHornHold == 'function') vxHornHold(false); VXT._horn = 0; el.classList.remove('down'); return; }
     VXTRL.touch[VXT_ACT[act] || act] = 0; el.classList.remove('down');
   };
   el.addEventListener('pointerdown', on);
   el.addEventListener('pointerup', off);
   el.addEventListener('pointercancel', off);
   el.addEventListener('pointerleave', off);
+  el.addEventListener('lostpointercapture', off);     // the pad was hidden under the finger
+  el.addEventListener('contextmenu', e => e.preventDefault());   // Android long-press must not cancel GAS
 }
 
 // ---------------------------------------------------------------- on-screen steering wheel
 function vxWheelVisible() {
-  if (!save.set.wheelOn) return false;
+  if (typeof VXTRL == 'undefined' || !VXTRL.wheelOn()) return false;
   if (typeof state == 'undefined' || (state != 'race' && state != 'count' && state != 'resume')) return false;
-  return typeof VXTRL != 'undefined' && VXTRL.source == 'wheel';
+  return VXTRL.source == 'wheel';
 }
 function vxWheelGeom() {
   // clamp to the screen: a 230px wheel is 72% of a 320px phone and used to cover both the road and the
@@ -230,6 +262,7 @@ function vxGyroFallback(why) {
   vxToast(why + ' — switching to the on-screen wheel');
   save.set.steerType = 'wheel'; persist();
   VXG.denied = true;
+  if (typeof vxmSteerSync == 'function') vxmSteerSync();
   if (typeof showX == 'function' && document.getElementById('xs') && !document.getElementById('xs').classList.contains('hidden')) showX('settings');
 }
 
@@ -441,16 +474,18 @@ function vxNavPad(g) {
 
 // ---------------------------------------------------------------- settings UI
 const VX_SETUP = [
-  ['steerType', 'Steering Type', [['auto', 'Auto-detect (default)'], ['keyboard', 'Keyboard'], ['gamepad', 'Gamepad'], ['touchbtn', 'Touch buttons ◀ ▶'], ['wheel', 'On-screen wheel'], ['gyro', 'Gyro / Tilt']]],
+  ['steerType', 'Steering Type', [['auto', 'Auto-detect (default)'], ['keyboard', 'Keyboard'], ['gamepad', 'Gamepad'], ['wheel', 'On-screen wheel'], ['gyro', 'Gyro / Tilt']]],
 ];
+// a phone gets exactly two: the on-screen wheel or tilting the phone
+const VX_PHONE_STEER = [['wheel', 'Steering wheel (on screen)'], ['gyro', 'Tilt / Gyro (move the phone)']];
 const VX_PAD_ACTIONS = { accel: 'Accelerate', brake: 'Brake / Reverse', nitro: 'Nitro', handbrake: 'Handbrake', horn: 'Horn', camera: 'Change camera', lookBack: 'Look back', reset: 'Reset car', pause: 'Pause', map: 'Map', rewind: 'Rewind' };
 
 function vxApplySteerType(v) {
   save.set.steerType = v;
-  if (v == 'gyro') vxGyroEnable();
-  if (v == 'wheel' || v == 'auto') { /* the wheel shows itself on touch devices */ }
+  if (v == 'gyro') { vxGyroEnable(); if (typeof VXIN != 'undefined') VXIN.tiltNeutral = null; }
   persist();
-  vxToast('STEERING: ' + (v == 'auto' ? 'AUTO (' + (typeof VXTRL != 'undefined' ? VXTRL.source : 'keyboard') + ')' : v.toUpperCase()));
+  if (typeof vxmSteerSync == 'function') vxmSteerSync();
+  vxToast('STEERING: ' + (v == 'auto' ? 'AUTO (' + (typeof VXTRL != 'undefined' ? VXTRL.source : 'keyboard') + ')' : v == 'gyro' ? 'TILT' : v.toUpperCase()));
 }
 const _showXCtrl = showX;
 showX = function (k) {
@@ -463,17 +498,20 @@ showX = function (k) {
   const rng = (label, key, min, max, step, suffix) => `<label>${label}<input type=range min=${min} max=${max} step=${step} value=${save.set[key]} onchange="save.set.${key}=+this.value;persist();vxSettingsRefresh()"> <i>${save.set[key]}${suffix || ''}</i></label>`;
   const chk = (label, key) => `<label class=cbl><input type=checkbox ${+save.set[key] ? 'checked' : ''} onchange="save.set.${key}=+this.checked;persist();vxSettingsRefresh()"> ${label}</label>`;
   const kb = save.set.keys, pad = save.set.pad;
+  const phone = typeof VXTRL != 'undefined' && VXTRL.isPhone();
+  const steerOpts = phone ? VX_PHONE_STEER : VX_SETUP[0][2];
+  const steerCur = phone ? (save.set.steerType == 'gyro' ? 'gyro' : 'wheel') : save.set.steerType;
   const html = `
   <h3>CONTROLS · STEERING TYPE <small>applies instantly</small></h3>
-  <label>Steering type<select onchange="vxApplySteerType(this.value)">${VX_SETUP[0][2].map(o => sel(o[0], o[1], save.set.steerType)).join('')}</select></label>
+  <label>Steering type<select onchange="vxApplySteerType(this.value)">${steerOpts.map(o => sel(o[0], o[1], steerCur)).join('')}</select></label>
   <div style="color:#5b6678;font-size:11px">Active now: <b id="vxsrc">${typeof VXTRL != 'undefined' ? VXTRL.source : 'keyboard'}</b> · controller: <b id="vxpadst">${VXIN.connected ? VXIN.padName.slice(0, 26) : 'none'}</b></div>
-  ${chk('Show on-screen steering wheel', 'wheelOn')}
+  ${phone ? '' : chk('Show on-screen steering wheel', 'wheelOn')}
   ${chk('Wheel auto-centres when released', 'wheelCenter')}
   ${chk('Wheel: no auto-centre', 'wheelNoCenter')}
   ${chk('Wheel: haptic tick at centre', 'wheelHaptic')}
   <label>Wheel size<input type=range min=120 max=360 step=10 value=${save.set.wheelSize} onchange="save.set.wheelSize=+this.value;persist()"></label>
   <label>Wheel opacity<input type=range min=.15 max=1 step=.05 value=${save.set.wheelOpacity} onchange="save.set.wheelOpacity=+this.value;persist()"></label>
-  <label>Wheel side<select onchange="save.set.wheelSide=this.value;persist()">${sel('left', 'Left handed (wheel left)', save.set.wheelSide)}${sel('right', 'Right handed (wheel right)', save.set.wheelSide)}</select></label>
+  <label>Wheel side<select onchange="save.set.wheelSide=this.value;persist();vxBuildTouchPad()">${sel('left', 'Left handed (wheel left)', save.set.wheelSide)}${sel('right', 'Right handed (wheel right)', save.set.wheelSide)}</select></label>
   <label>Wheel skin<select onchange="save.set.wheelSkin=this.value;persist()">${sel('carbon', 'Carbon', save.set.wheelSkin)}${sel('sport', 'Sport', save.set.wheelSkin)}${sel('classic', 'Classic', save.set.wheelSkin)}</select></label>
 
   <h3>CONTROLS · GYRO / TILT</h3>
@@ -494,9 +532,9 @@ showX = function (k) {
   ${rng('Vibration intensity', 'vibeI', 0, 1, .05)}
   <button class=ghost onclick="vxRemapReset('pad')">RESET CONTROLLER LAYOUT</button>
 
-  <h3>CONTROLS · REMAP — KEYBOARD</h3>
+  ${phone ? '' : `<h3>CONTROLS · REMAP — KEYBOARD</h3>
   <div class=vxremap>${Object.keys(VX_PAD_ACTIONS).filter(k => kb[k]).map(k => `<button class=ghost onclick="vxRemapKey('${k}')">${VX_PAD_ACTIONS[k]}<b>${kb[k]}</b></button>`).join('')}</div>
-  <button class=ghost onclick="vxRemapReset('key')">RESET KEYBOARD</button>
+  <button class=ghost onclick="vxRemapReset('key')">RESET KEYBOARD</button>`}
 
   <h3>CONTROLS · REMAP — CONTROLLER</h3>
   <div class=vxremap>${Object.keys(VX_PAD_ACTIONS).filter(k => pad[k] != null).map(k => `<button class=ghost onclick="vxRemapPad('${k}')">${VX_PAD_ACTIONS[k]}<b>B${pad[k]}</b></button>`).join('')}</div>
@@ -655,17 +693,7 @@ function vxUiTick(t) {
   // touch pad
   if (VXT) {
     const wantTouch = live && (typeof VXTRL != 'undefined') && (VXTRL.isTouch() || +save.set.touch);
-    if (VXT._want !== wantTouch) { VXT._want = wantTouch; VXT.classList.toggle('hidden', !wantTouch); }
-    const btnStyle = typeof VXTRL != 'undefined' && VXTRL.source;
-    // the ◀ ▶ buttons are the fallback when the wheel is selected but hidden
-    const wantArrows = btnStyle == 'touchbtn' || (btnStyle == 'wheel' && !+save.set.wheelOn);
-    // querySelectorAll every 33 ms allocated a NodeList plus a closure, then wrote the same two style
-    // strings; the nodes only change when the pad is rebuilt
-    if (VXW.arrows !== wantArrows) {
-      VXW.arrows = wantArrows;
-      if (!VXW.arrowEls) VXW.arrowEls = VXT.querySelectorAll('.vxbtn[data-act=left],.vxbtn[data-act=right]');
-      for (let i = 0; i < VXW.arrowEls.length; i++) VXW.arrowEls[i].style.display = wantArrows ? '' : 'none';
-    }
+    if (VXT._want !== wantTouch) { VXT._want = wantTouch; VXT.classList.toggle('hidden', !wantTouch); if (!wantTouch) vxTouchRelease(); }
   }
   // prompts follow the device
   if (VXPROMPT_LAST != VXIN.lastDevice) { VXPROMPT_LAST = VXIN.lastDevice; vxPromptRefresh(); }
@@ -730,7 +758,7 @@ window.VXDBG = {
   },
   input() {
     if (typeof VXIN == 'undefined') return null;
-    return { source: VXIN.source, last: VXIN.lastDevice, connected: VXIN.connected, pad: VXIN.padName,
+    return { source: typeof vxSteerSource == 'function' ? vxSteerSource() : VXIN.source, last: VXIN.lastDevice, connected: VXIN.connected, pad: VXIN.padName,
       steer: VXIN.steer, throttle: VXIN.throttle, brake: VXIN.brake, tilt: VXIN.tilt, beta: VXIN.tiltBeta, layer: Object.assign({}, VXIN.layer) };
   },
   // measured performance: the acceptance tests read these instead of guessing from the FPS counter

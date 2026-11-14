@@ -29,16 +29,21 @@ const VX_MOBILE = (() => {
 })();
 // Quality: 0 Low · 1 Medium · 2 High · 3 Ultra · 4 Auto (default). Auto resolves to a preset from the
 // GPU probe and the device class; the runtime governor then scales the render inside that preset.
+// Auto on a phone is Medium with no MSAA: multisampling a dpr-3 framebuffer was the single biggest cost on
+// mid-range Android, and the dynamic-resolution governor in controls.js handles the rest.
 const VX_QRAW = save.set && save.set.q != null ? +save.set.q : 4;
 function vxResolveQual(){
   const q = save.set && save.set.q != null ? +save.set.q : VX_QRAW;
-  return q >= 4 ? (VX_WEAK_GPU ? 1 : VX_MOBILE ? 2 : 3) : q;
+  return q >= 4 ? (VX_WEAK_GPU || VX_MOBILE ? 1 : 3) : q;
 }
-const VX_QUAL = VX_QRAW >= 4 ? (VX_WEAK_GPU ? 1 : VX_MOBILE ? 2 : 3) : VX_QRAW;
+const VX_QUAL = VX_QRAW >= 4 ? (VX_WEAK_GPU || VX_MOBILE ? 1 : 3) : VX_QRAW;
 // never above 2: a phone reporting dpr 3 would render nine times the pixels for no visible gain
 function vxBaseRatio() {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  return [.6, .85, 1, dpr][vxResolveQual()] || 1;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), q = vxResolveQual();
+  const auto = !(save.set && save.set.q != null) || +save.set.q >= 4;
+  // a phone's CSS pixel is tiny: 0.85 of it looked soft, 1.25 is sharp and still a third of native dpr 3
+  if (auto && VX_MOBILE && !VX_WEAK_GPU) return Math.min(dpr, 1.25);
+  return [.6, .85, 1, dpr][q] || 1;
 }
 // frame-time bookkeeping for the optional debug overlay and for the acceptance tests
 const VXSTAT = { fps: 0, n: 0, acc: 0, ms: 0, worst: 0, p1: 0, buf: new Float32Array(240), bi: 0, bn: 0, calls: 0, tris: 0, pr: 1, dt: 0 };

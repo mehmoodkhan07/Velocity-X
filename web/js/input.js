@@ -11,7 +11,7 @@ const VX_KBDEF = {
   cam: 'KeyC', reset: 'KeyR', horn: 'KeyH', rewind: 'KeyZ', map: 'KeyM', pause: 'Escape', lookBack: 'KeyB', pit: 'KeyF'
 };
 save.set = Object.assign({
-  steerType: 'auto',           // auto | keyboard | gamepad | touchbtn | wheel | gyro
+  steerType: 'auto',           // auto | keyboard | gamepad | wheel | gyro  (a phone only offers wheel | gyro)
   padDz: .12, padCurve: 'soft', padSmooth: 14, padTrigDz: .06, padCustom: 0,
   vibe: 1, vibeI: .7,
   wheelOn: 1, wheelSize: 230, wheelOpacity: .85, wheelSide: 'left', wheelSkin: 'carbon',
@@ -46,6 +46,23 @@ function vxIsMobileUA() {
   if (typeof navigator === 'undefined') return false;
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
 }
+// A phone or a tablet held in the hand: touch, and no fine hovering pointer (an iPad reports a desktop UA,
+// a touchscreen laptop reports hover).  Those players get exactly two steering choices: wheel or tilt.
+// matchMedia is cheap but this runs every frame, so the answer is cached for two seconds.
+const VXPHONE = { v: null, t: -1e9 };
+function vxIsPhone() {
+  const now = typeof performance != 'undefined' ? performance.now() : 0;
+  if (VXPHONE.v != null && now - VXPHONE.t < 2000) return VXPHONE.v;
+  let v = false;
+  if (vxIsTouch()) {
+    if (vxIsMobileUA()) v = true;
+    else try { v = !matchMedia('(hover: hover) and (pointer: fine)').matches; } catch (e) { v = true; }
+  }
+  VXPHONE.v = v; VXPHONE.t = now;
+  return v;
+}
+/** The wheel is the only non-tilt steering on a phone, so there it can never be switched off. */
+function vxWheelOn() { return !!+save.set.wheelOn || vxIsPhone(); }
 
 // ---------------------------------------------------------------- gamepad polling
 function vxPadList() {
@@ -170,8 +187,13 @@ function vxTouchState() {
 // ---------------------------------------------------------------- steering source + wheel / gyro
 function vxSteerSource() {
   const st = save.set.steerType || 'auto';
+  if (vxIsPhone()) {
+    // a controller paired to the phone still drives; otherwise only the two touch choices exist
+    if (VXIN.connected && (st == 'gamepad' || st == 'auto')) return 'gamepad';
+    return st == 'gyro' ? 'gyro' : 'wheel';
+  }
   if (st == 'auto') return VXA.resolveSteering('auto', { touch: vxIsTouch(), gamepad: VXIN.connected });
-  if (st == 'touchbtn') return 'touch';
+  if (st == 'touchbtn') return 'wheel';            // the ◀ ▶ buttons were retired in v0.8
   return st;
 }
 /** Called by the on-screen wheel widget while the player drags it. */
@@ -184,7 +206,7 @@ function vxWheelDrag(deg) {
 function vxWheelRelease() { VXIN.wheelGrab = false; }
 /** Raw device tilt in, calibrated steering out (used by DeviceOrientationEvent and by the tests). */
 function vxTiltSample(beta, gamma, angle) {
-  VXIN.tiltBeta = beta; VXIN.tiltGamma = gamma;
+  VXIN.tiltBeta = beta; VXIN.tiltGamma = gamma; VXIN.tiltSeen = 1;
   VXIN.tiltOrient = VXA.landscapeFromAngle(angle);
 }
 function vxTiltCalibrate() {
@@ -201,11 +223,13 @@ function vxLayerStep(dt) {
   VXIN.source = src;
 
   // wheel: auto-centres when the finger is off the rim
-  if (src == 'wheel' && save.set.wheelOn && !VXIN.wheelGrab && !save.set.wheelNoCenter) {
+  const wheelOn = vxWheelOn();
+  if (src == 'wheel' && wheelOn && !VXIN.wheelGrab && !save.set.wheelNoCenter) {
     VXIN.wheelDeg = VXA.wheelAutoCenter(VXIN.wheelDeg, dt, 7);
   }
-  // gyro: recalibrate the neutral angle once per session
-  if (src == 'gyro' && VXIN.tiltNeutral == null) vxTiltCalibrate();
+  // gyro: recalibrate the neutral angle once per race, from a real sample (0/0 before the first event
+  // arrives would make "level" whatever angle the phone happened to be at)
+  if (src == 'gyro' && VXIN.tiltNeutral == null && VXIN.tiltSeen) vxTiltCalibrate();
   const axis = VXA.tiltAxis(VXIN.tiltBeta, VXIN.tiltGamma, VXIN.tiltOrient);
   const tiltTarget = VXA.tiltToSteer(axis, VXIN.tiltNeutral == null ? axis : VXIN.tiltNeutral, VXIN.tilt, {
     sensitivity: save.set.gyroSens, deadzone: save.set.gyroDz, invert: !!save.set.gyroInv, smoothing: save.set.gyroSmooth
@@ -216,7 +240,11 @@ function vxLayerStep(dt) {
   let steer = kb.steer;
   if (Math.abs(touch.steer) > 0) steer = touch.steer;
   if (src == 'gamepad' && g) steer = VXIN.steerTarget;
-  else if (src == 'wheel' && save.set.wheelOn) steer = VXA.wheelAngleToSteer(VXIN.wheelDeg);
+  else if (src == 'wheel' && wheelOn) {
+    // the arrow keys still work on a touchscreen laptop while nobody is holding the rim
+    const w = VXA.wheelAngleToSteer(VXIN.wheelDeg);
+    steer = !VXIN.wheelGrab && Math.abs(w) < .01 && kb.steer ? kb.steer : w;
+  }
   else if (src == 'gyro') steer = tiltTarget;
   else if (g && Math.abs(VXIN.steerTarget) > .02) steer = VXIN.steerTarget;   // a pad still works when not selected
   VXIN.steerTarget = steer;
@@ -359,7 +387,7 @@ window.VXWHEEL = { drag: vxWheelDrag, release: vxWheelRelease, get deg() { retur
 window.VXTRL = {
   tilt: vxTiltSample, calibrate: vxTiltCalibrate, get neutral() { return VXIN.tiltNeutral; },
   get steer() { return VXIN.tilt; }, get source() { return vxSteerSource(); },
-  isTouch: vxIsTouch, isMobile: vxIsMobileUA,
+  isTouch: vxIsTouch, isMobile: vxIsMobileUA, isPhone: vxIsPhone, wheelOn: vxWheelOn,
   rumble: vxRumble, layerStep: vxLayerStep, touch: VXTOUCH, setLast: vxSetLast,
   cycleCamera: vxCycleCamera, resetCar: vxResetCar, offTrack: vxOffTrack, curveAhead: vxCurveAhead
 };

@@ -300,12 +300,6 @@ table{display:block;overflow-x:auto;white-space:nowrap}
   .panel{padding:10px 12px}
   h2{font-size:16px}h3{font-size:11px}
   .picks button{min-height:64px;padding:10px 12px}
-  /* short landscape has no free left column: the position block is on top and the wheel is below it,
-     so the three utility buttons form one row in the gap.  Only while the layout is still the default
-     one — a player who rearranged their pads keeps their own arrangement. */
-  #vxtch.vxdef [data-act=cam]{left:4%!important;top:30%!important}
-  #vxtch.vxdef [data-act=horn]{left:11%!important;top:30%!important}
-  #vxtch.vxdef [data-act=reset]{left:18%!important;top:30%!important}
 }
 /* portrait phones: the speedometer becomes a chip in the top-right column, under the minimap, so the
    bottom of the screen belongs to the thumbs and it can never land on the utility buttons. The chip is
@@ -333,4 +327,19 @@ table{display:block;overflow-x:auto;white-space:nowrap}
   .panel{max-width:980px}
   #hl{max-width:30vw}
 }
+
+/* ---- v0.8 mobile: WHEEL | TILT chooser, DOWNLOAD GAME, install guide ---- */
+.vxsteer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:8px 10px;background:#0b1018;border:1px solid #00E5FF44}
+.vxsteer span{color:#A5ADBA;font-size:11px;font-weight:800;letter-spacing:.2em;flex:0 0 auto}
+.vxsteer button{flex:1 1 110px;margin:0}
+.vxsteer button.on{background:#00E5FF;color:#080A0F;border-color:#00E5FF}
+#pause .vxsteer{margin:10px 0}
+#splash .vxinst{margin-top:10px;background:none;color:#fff;border:1px solid #00E5FF;animation:vxpulse 2.4s ease-in-out infinite}
+@keyframes vxpulse{0%,100%{box-shadow:0 0 0 0 #00E5FF00}50%{box-shadow:0 0 18px 2px #00E5FF66}}
+#vxinsthelp{background:#080A0Fe6;z-index:30;padding:16px}
+#vxinsthelp .panel{max-width:min(480px,100%)}
+#vxinsthelp ol{margin:6px 0 12px;padding-left:22px;line-height:1.7;font-size:max(14px,var(--txt))}
+#vxinsthelp .sub{color:#A5ADBA;margin:4px 0;font-size:14px}
+#vxinsthelp .vxico{display:inline-block;min-width:22px;text-align:center;color:#00E5FF;font-weight:800}
+@media (prefers-reduced-motion:reduce){#splash .vxinst{animation:none}}
 

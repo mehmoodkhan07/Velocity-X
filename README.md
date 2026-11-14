@@ -274,13 +274,20 @@ build works offline; `npx playwright install chromium` is needed once for the br
 Menus are fully navigable: D-pad/stick to move (with auto-repeat), `A` select, `B` back, visible focus ring.
 Unplugging a pad mid-race pauses instead of driving blind.
 
-**Touch / wheel / gyro**
+**Phone (touch)**
 
-Draggable wheel, **±450° = ±1.0 lock**, smooth auto-centre (or none), multi-touch safe, with size, opacity,
-side, skin and centre-tick haptics. Touch buttons can be dragged and resized; `NITRO`, `HB`, `BRK`, `GAS`,
-`CAM`, `HORN`, `RST` are all ≥ 48 px. Gyro supports the iOS permission request, `CALIBRATE`, sensitivity,
-deadzone, invert and low-pass, and **falls back to the wheel automatically**. Steering source can be
-`Keyboard / Gamepad / Touch / Wheel / Gyro / Auto-detect`, switched live.
+Two steering choices, picked from the main menu or the pause menu: **◎ WHEEL** (draggable on-screen wheel,
+±450° = ±1.0 lock, smooth auto-centre) or **📱 TILT** (gyro, with the iOS permission request, auto-calibration
+each race, and an automatic fall-back to the wheel when the phone sends no sensor data). Four buttons:
+**GAS**, **BRAKE**, **NOS**, **HORN** — all ≥ 48 px, multi-touch safe, released on blur / background /
+rotation so nothing ever sticks. Portrait and landscape have their own layouts. A race pauses itself when
+the app goes to the background.
+
+**Download / install (Android, iPhone, desktop)**
+
+Tap **⬇ DOWNLOAD GAME** on the splash or the main menu. Android / Chrome / Edge show the install prompt;
+on iPhone the button shows the *Share → Add to Home Screen* steps. The service worker stores every file
+(scripts, textures, all four car models), so the installed game opens full-screen and plays **offline**.
 
 ---
 

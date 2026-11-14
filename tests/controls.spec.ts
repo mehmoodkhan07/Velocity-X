@@ -86,7 +86,9 @@ test('the page boots with no script errors', async ({ page }) => {
 test.describe('touch device (phone in landscape)', () => {
   test.use({ hasTouch: true, isMobile: true, viewport: { width: 844, height: 390 } });
 
-  test('the on-screen wheel appears, dragging it steers, and "show wheel off" hides it', async ({ page }) => {
+  test('the on-screen wheel appears, dragging it steers, and a phone cannot switch it off', async ({ page }) => {
+    // the player answers "Allow" to the motion prompt (a denied prompt falls back to the wheel by design)
+    await page.context().grantPermissions(['accelerometer', 'gyroscope', 'magnetometer']);
     await load(page);
     await startRace(page);
 
@@ -110,16 +112,39 @@ test.describe('touch device (phone in landscape)', () => {
     await expect.poll(async () => Math.abs((await page.evaluate(() => VXDBG.wheel())).deg), { timeout: 5_000 })
       .toBeLessThan(30);
 
-    // steering wheel OFF -> the widget is gone and the ◀ ▶ buttons take over
+    // a phone has exactly two steering choices (wheel or tilt): the old "wheel off" setting cannot leave it
+    // with no steering at all, and the retired ◀ ▶ buttons never come back
     await page.evaluate(() => { VXDBG.save.set.wheelOn = 0; persist(); });
-    await expect(wheel).toBeHidden();
-    const arrowsVisible = await page.evaluate(() =>
-      [...document.querySelectorAll<HTMLElement>('.vxbtn[data-act=left],.vxbtn[data-act=right]')]
-        .some(e => e.style.display !== 'none'));
-    expect(arrowsVisible, 'the touch arrows replace the hidden wheel').toBe(true);
+    await page.waitForTimeout(300);
+    await expect(wheel).toBeVisible();
+    expect(await page.locator('.vxbtn[data-act=left],.vxbtn[data-act=right]').count()).toBe(0);
+
+    // TILT from the pause menu chooser, then back to WHEEL
+    await page.evaluate(() => pauseGame());
+    const pick = page.locator('#pause .vxsteer');
+    await expect(pick).toBeVisible();
+    // force: the software renderer of the CI browser draws ~15 fps under the blurred pause backdrop, which can
+    // keep Playwright's "stable" wait spinning; the button is already asserted visible above
+    await pick.locator('button[data-st=gyro]').click({ force: true });
+    await expect.poll(() => page.evaluate(() => VXDBG.input().source)).toBe('gyro');
+    await pick.locator('button[data-st=wheel]').click({ force: true });
+    await expect.poll(() => page.evaluate(() => VXDBG.input().source)).toBe('wheel');
+    // keyboard / gamepad / auto from an older save still resolve to one of the two
+    await page.evaluate(() => { VXDBG.save.set.steerType = 'keyboard'; });
+    await expect.poll(() => page.evaluate(() => VXDBG.input().source)).toBe('wheel');
   });
 
-  test('the touch buttons drive: gas, brake, nitro, handbrake, horn', async ({ page }) => {
+  test('exactly four touch buttons: GAS, BRAKE, NOS, HORN; the legacy pad stays hidden', async ({ page }) => {
+    await load(page);
+    await startRace(page);
+    await page.waitForTimeout(300);
+    const acts = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('#vxtch .vxbtn')]
+      .filter(e => getComputedStyle(e).display !== 'none').map(e => e.dataset.act).sort());
+    expect(acts).toEqual(['brake', 'gas', 'horn', 'nitro']);
+    expect(await page.locator('#tch').isVisible(), 'the retired six-button pad').toBe(false);
+  });
+
+  test('the touch buttons drive: gas, brake, nitro, horn', async ({ page }) => {
     await load(page);
     await startRace(page);
     // The pad is rebuilt whenever the layout or the steering source changes, so a button can be
@@ -148,8 +173,6 @@ test.describe('touch device (phone in landscape)', () => {
     expect(brk.b, 'BRAKE button brakes').toBeGreaterThan(0.8);
     const nos = await press('nitro', 150);
     expect(nos.n, 'NOS button fires nitro').toBe(1);
-    const hb = await press('hb', 150);
-    expect(hb.hb, 'HB button pulls the handbrake').toBe(1);
     const honks0 = await page.evaluate(() => VXDBG.save.honks || 0);
     await press('horn', 150);
     await expect.poll(() => page.evaluate(() => VXDBG.save.honks || 0)).toBeGreaterThan(honks0);

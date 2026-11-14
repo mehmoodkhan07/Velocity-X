@@ -75,8 +75,9 @@ function olJoin(){save.set.srv=$('srv').value;save.set.pn=$('pn').value;persist(
 function x2(t){requestAnimationFrame(x2);const dt=Math.min((t-(x2.l||t))/1000,.1);x2.l=t;
  const live=cfg&&player&&cars.length&&['race','count'].includes(state);
  // guarded: classList.toggle ran on every single frame even when nothing changed
- const wantTch=!!((save.set.touch||'ontouchstart' in window)&&live);
- if(x2.tch!==wantTch){x2.tch=wantTch;$('tch').classList.toggle('hidden',!wantTch)}
+ // the legacy six-button pad is retired: controls.js owns the touch HUD (GAS / BRAKE / NOS / HORN + wheel or tilt).
+ // Showing both used to stack two translucent copies of every pedal on a phone.
+ if(x2.tch!==false){x2.tch=false;$('tch').classList.add('hidden')}
  if(bus){const v=save.set.vol;bus.m.gain.value=save.set.mv*v*.5;bus.s.gain.value=save.set.sv*v;bus.a.gain.value=save.set.av*v;
   // audio.js owns wind / tyre / screech / nitro from v0.7: silence the old duplicated noise layers
   const newAud=!!(window.VXAUD&&VXAUD.ready);
